@@ -15,9 +15,13 @@ import statsmodels.api as sm
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
 
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
+
+from sklearn.metrics import mean_absolute_error
+
 
 
 ###########################################################################################
@@ -84,7 +88,11 @@ def cross_validate(model, cv, scoring_func):
 # Run OLS on SKlearn library
 # No need to add constant value as SKlearn handles it
 
-cross_validate(LinearRegression(), 3, 'neg_mean_absolute_error')
+lm = LinearRegression()
+
+cross_validate(lm, 3, 'neg_mean_absolute_error')
+
+lm.fit(X_train,y_train)
 
 ###########################################################################################
 # Run Lasso Model and plot error curve to optimise the alpha value based on CV score
@@ -109,8 +117,51 @@ best_alpha = lasso_error_df.loc[lasso_error_df['neg_MAE'] == max(lasso_error_df[
 
 print("Best alpha for lasso is %f" %best_alpha)
 
+lm_lasso = Lasso(alpha = 0.09)
+
+lm_lasso.fit(X_train, y_train)
+
 ###########################################################################################
 
 # Random forest regressor
-
+    
 cross_validate(RandomForestRegressor(), 3, 'neg_mean_absolute_error')
+
+# Since Random forest seems to be providing the best results, we will run Grid search to find optimal parameters
+
+# Setting a parameter dictionary
+
+params = {
+    "n_estimators": range(10,100,10),
+    "criterion": ["mae"],
+    #"min_samples_leaf": np.arange(0.1,0.5,0.1),
+    "random_state":[1]
+    }
+
+ds_rf = GridSearchCV(estimator = RandomForestRegressor(),param_grid=params, scoring='neg_mean_absolute_error', cv= 3)
+
+ds_rf.fit(X_train,y_train)
+
+print("Best Estimator: ")
+print(ds_rf.best_estimator_)
+
+print("Best score: ")
+print(ds_rf.best_score_)
+
+###########################################################################################
+
+# Testing ensemble score
+
+test_pred_lm = lm.predict(X_test)
+test_pred_lm_lasso = lm_lasso.predict(X_test)
+test_pred_rf = ds_rf.predict(X_test)
+
+array_preds = [test_pred_lm,test_pred_lm_lasso,test_pred_rf]
+
+for prediction in array_preds:
+    
+    print(mean_absolute_error(y_test, prediction))
+    
+test_pred_ensemble = (test_pred_lm + test_pred_lm_lasso + test_pred_rf)/3
+
+mean_absolute_error(y_test, test_pred_ensemble)
