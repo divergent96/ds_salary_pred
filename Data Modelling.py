@@ -28,7 +28,6 @@ from sklearn.metrics import mean_absolute_error
 
 df = pd.read_pickle("cleaned_jobs_2.pk1")
 
-
 """
 General steps for modelling
 
@@ -57,6 +56,8 @@ y = df_dum['avg_salary']
 
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size = 0.2, random_state = 1)
 
+
+# X_train.iloc[1,:].values.reshape(1,-1)
 ###########################################################################################
 
 # Stats models OLS regression. Since it doesnt create a constant by default, we add it in
@@ -163,5 +164,14 @@ for prediction in array_preds:
     print(mean_absolute_error(y_test, prediction))
     
 test_pred_ensemble = (test_pred_lm + test_pred_lm_lasso + test_pred_rf)/3
-
+    
 mean_absolute_error(y_test, test_pred_ensemble)
+
+###########################################################################################
+
+# Pickle our model so we can use it with flask for web hosting
+
+import pickle
+
+filename = 'final_jobs_rf_model.p'
+pickle.dump(ds_rf.best_estimator_, open(filename, 'wb'))
